@@ -65,3 +65,22 @@ Qed.
 Lemma lem_pow : forall n : nat, (3 * 3 ^ n)%nat = (3 ^ (n + 1))%nat.
   hammer.
 Qed.
+
+Lemma lem_lst_1 : forall (A : Type) (l l' : list A), List.NoDup (l ++ l') -> List.NoDup l.
+Proof.
+  (* The hammer can't do induction. If induction is necessary to carry out the
+  proof, then one needs to start the induction manually. *)
+  induction l'.
+  hammer. Undo.
+  Reconstr.reasy (@Coq.Lists.List.app_nil_end) Reconstr.Empty.
+  hammer. Undo.
+  Reconstr.reasy (@Coq.Lists.List.NoDup_remove_1) Reconstr.Empty.
+Qed.
+
+Lemma NoDup_remove_1
+     : forall (A : Type) (a : A) (l' l : list A),
+       List.NoDup (l ++ a :: l') ->
+       ~ List.In a (l ++ l') /\ List.NoDup (l ++ l') /\ List.NoDup l.
+Proof.
+  Reconstr.rcrush (@Coq.Lists.List.NoDup_remove, @lem_lst_1) Reconstr.Empty.
+Qed.
