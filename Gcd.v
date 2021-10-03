@@ -56,8 +56,8 @@ Section Extgcd.
 
   Lemma poseven_div : forall p, true = poseven p -> (Pos.div2 p < p)%positive.
   Proof.
-  induction p; simpl; intro H; try (inversion H).
-  nia.
+    induction p; simpl; intro H; try (inversion H).
+    nia.
   Qed.
 
   Definition binary_gcd (u v g : positive) (a b c d : Z) : Z * Z * positive.
@@ -89,7 +89,7 @@ End Extgcd.
 
 Time Eval vm_compute in binary_gcd 22345 485 22345 485 1 1 0 0 1.
 
-Section Onemore. 
+Section Extgcds. 
 
   Variable (x y : positive).
 
@@ -128,9 +128,11 @@ Section Onemore.
         try (apply Acc_inv with (1 := H); nia).
     Defined.
 
-End Onemore.
+End Extgcds. 
 
 Time Eval vm_compute in bgcd 22345 485 22345 485 1 1 0 0 1.
+
+Section Extgcdfuel.
 
   Fixpoint bin_gcd (n : nat) (x y : positive) (u v g : positive) (a b c d : Z) : Z * Z * positive :=
     match n with 
@@ -162,6 +164,7 @@ Time Eval vm_compute in bgcd 22345 485 22345 485 1 1 0 0 1.
       bin_gcd (2 * (Pos.size_nat a + Pos.size_nat b + 2)) a b a b 1 1 0 0 1.
 
     Time Eval compute in binary_extended_gcd 9873492734 6434423.
+  End Extgcdfuel.
 
 End Reducing.
 
@@ -236,5 +239,3 @@ End T.
 Time Eval compute in bgcd 2 3 2 3 1 1 0 0 1.
 
 End NotReducing.
-
-
