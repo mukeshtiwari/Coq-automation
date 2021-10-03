@@ -2,7 +2,8 @@ Require Import Coq.PArith.BinPos
   Coq.ZArith.ZArith
   Lia Coq.Arith.Compare_dec.
 
- 
+
+Module Reducing.
 Local Open Scope Z_scope.
 
 Section wf_proof.
@@ -131,8 +132,6 @@ End Onemore.
 
 Time Eval vm_compute in bgcd 22345 485 22345 485 1 1 0 0 1.
 
-  Require Extraction. Extraction  bgcd.
-
   Fixpoint bin_gcd (n : nat) (x y : positive) (u v g : positive) (a b c d : Z) : Z * Z * positive :=
     match n with 
     | 0%nat => (a, b, Pos.mul g v)
@@ -164,8 +163,9 @@ Time Eval vm_compute in bgcd 22345 485 22345 485 1 1 0 0 1.
 
     Time Eval compute in binary_extended_gcd 9873492734 6434423.
 
-        
-Module Reducing.
+End Reducing.
+
+Module NotReducing.
 
 Require Import Coq.NArith.BinNat.
 Require Import Coq.Program.Wf.
@@ -185,6 +185,8 @@ Proof.
   reflexivity.
 Defined.
 
+About poslt_wf.
+About Reducing.poslt_wf.
 Section T.
 
 Variable (x y : positive).
@@ -224,13 +226,15 @@ Definition bgcd (u v g : positive) (a b c d : Z) : Z * Z * positive.
       try (apply Acc_inv with (1 := H); nia).
   Defined.
 
+  About bgcd.
+  About poslt_wf.
 End T.
 
 
 
 (* This one does not reduce  to any value *)
-Time Eval compute in binary_gcd 20000 3001 20000 3001 1 1 0 0 1.
+Time Eval compute in bgcd 2 3 2 3 1 1 0 0 1.
 
-End Reducing.
+End NotReducing.
 
 
