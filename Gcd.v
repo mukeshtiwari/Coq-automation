@@ -5,56 +5,41 @@ Require Import Coq.PArith.BinPos
  
 Local Open Scope Z_scope.
 
-(* This code is taken from the library but it was opaque so I made it transparent. Defined and Z_le_gt_dec *)
 Section wf_proof.
 
-  Definition Zwf (c x y:Z) := c <= y /\ x < y.
-  (** The proof of well-foundness is classic: we do the proof by induction
-      on a measure in nat, which is here [|x-c|] *)
+  Let f (c : Z) (a : Z) := Z.abs_nat (a - c).
 
-  Let f (c : Z) (z : Z) := Z.abs_nat (z - c).
+  Definition zwf (c : Z) (x y : Z) := (f c x < f c y)%nat.
 
-  Lemma zwf_well_founded (c : Z) : well_founded (Zwf c).
-    red; intros.
-    assert (forall (n:nat) (a:Z), (f c a < n)%nat \/ a < c -> Acc (Zwf c) a).
-    clear a. simple induction n; intros.
-  (** n= 0 *)
-    case H; intros.
-    lia.
-    apply Acc_intro; unfold Zwf; intros.
-    lia.
-  (** inductive case *)
-    case H0; clear H0; intro; auto.
-    apply Acc_intro; intros.
-    apply H.
-    unfold Zwf in H1.
-    case (Z_le_gt_dec c y); intro. 2: lia.
-    left.
-    apply lt_le_trans with (f c a); auto with arith.
-    unfold f.
-    lia.
-    apply (H (S (f c a))); auto.
+  Lemma zwf_well_founded (c : Z) : well_founded (zwf c).
+  Proof.
+    exact (well_founded_ltof Z (f c)).
   Defined.
-
-
-
+    
+  Lemma pos_acc : forall x a, Zpos a <= x -> Acc Pos.lt a.
+  Proof.
+    intro x.
+    induction (zwf_well_founded 1 x) as [z Hz IHz].
+    intros ? Hxa.
+    constructor; intros y Hy.
+    eapply IHz with (y := Z.pos y).
+    unfold zwf. clear Hz; clear IHz.
+    apply Zabs_nat_lt.
+    split; nia.
+    reflexivity.
+  Defined.
 
 
   Lemma poslt_wf : well_founded Pos.lt.
   Proof.
-    unfold well_founded.
-    assert (forall x a, x = Zpos a -> Acc Pos.lt a).
-    intros x. induction (zwf_well_founded 1 x).
-    Locate zwf_well_founded.
-    intros ? Hxa. subst x.
-    constructor; intros y Hy.
-    eapply H0 with (y := Zpos y); trivial.
-    split; auto with zarith.
-    intros. apply H with (Zpos a).
-    exact eq_refl.
-  Defined.
+    red; intros ?.
+    eapply pos_acc.
+    instantiate (1 := Z.pos a).
+    reflexivity.
+  Defined. 
 
-  About poslt_wf. 
+  About poslt_wf.
+
 End wf_proof.
 
 Section Extgcd.
@@ -101,6 +86,8 @@ Section Extgcd.
   Defined.
 End Extgcd.
 
+Time Eval vm_compute in binary_gcd 22345 485 22345 485 1 1 0 0 1.
+
 Section Onemore. 
 
   Variable (x y : positive).
@@ -141,9 +128,11 @@ Section Onemore.
     Defined.
 
 End Onemore.
+
+Time Eval vm_compute in bgcd 22345 485 22345 485 1 1 0 0 1.
+
   Require Extraction. Extraction  bgcd.
-      (* This is the fastest one amongst all becuase there is no proof, but it runs on fuel. 
-       Now the challenge is to prove that the fuel below is sufficient to compute any gcd *)
+
   Fixpoint bin_gcd (n : nat) (x y : positive) (u v g : positive) (a b c d : Z) : Z * Z * positive :=
     match n with 
     | 0%nat => (a, b, Pos.mul g v)
@@ -169,11 +158,79 @@ End Onemore.
         end
     end.
 
+    Time Eval vm_compute in bin_gcd 100 22345 485 22345 485 1 1 0 0 1.
     Definition binary_extended_gcd (a b : positive) := 
       bin_gcd (2 * (Pos.size_nat a + Pos.size_nat b + 2)) a b a b 1 1 0 0 1.
 
-    Eval compute in binary_extended_gcd 9873492734 6434423.
+    Time Eval compute in binary_extended_gcd 9873492734 6434423.
 
         
-        
+Module Reducing.
+
+Require Import Coq.NArith.BinNat.
+Require Import Coq.Program.Wf.
+Require Import Coq.ZArith.Zwf.
+
+Lemma poslt_wf : well_founded Pos.lt.
+Proof.
+  unfold well_founded.
+  assert (forall (x : Z)  a, x = Zpos a -> Acc Pos.lt a).
+  intros x. induction (Zwf_well_founded 1 x);
+  intros a Hxa. 
+  constructor; intros y Hy.
+  eapply H0 with (y := Z.pos y).
+  unfold Zwf. split; nia.
+  reflexivity.
+  intros ?. eapply H with (x := Z.pos a).
+  reflexivity.
+Defined.
+
+Section T.
+
+Variable (x y : positive).
+
+
+Definition bgcd (u v g : positive) (a b c d : Z) : Z * Z * positive.
+  Proof.
+    revert g a b c d.
+    refine ((fix bgcd u v (H : Acc Pos.lt (Pos.add u v)) {struct H} := 
+      match u as up, v as vp return (u, v) = (up, vp) -> _ with
+      | xH, xH => fun Huv g a b c d => (a, b, Pos.mul g v)
+      | xH, xO pv => fun Huv g a b c d => match Z.even c, Z.even d with
+        | true, true => bgcd xH pv _ g a b (Z.div c 2) (Z.div d 2)
+        | _, _ => bgcd xH pv _ g a b (Z.div (c + Zpos y) 2) (Z.div (d - Zpos x) 2)
+        end
+      | xH, xI pv => fun Huv g a b c d => bgcd u (Pos.sub v u) _ g a b (Z.sub c a) (Z.sub d b)
+      | xO pu, xH => fun Huv g a b c d => match Z.even a, Z.even b with
+        | true, true =>  bgcd pu xH _ g (Z.div a 2) (Z.div b 2) c d
+        | _, _ =>  bgcd pu xH _ g (Z.div (a + Zpos y) 2) (Z.div (b - Zpos x) 2) c d
+        end
+      | xO pu, xO pv => fun Huv g a b c d => bgcd pu pv _ (Pos.mul 2 g) a b c d
+      | xO pu, xI pv => fun Huv g a b c d =>  match Z.even a, Z.even b with
+        | true, true =>  bgcd pu (xI pv) _ g (Z.div a 2) (Z.div b 2) c d
+        | _, _ =>  bgcd pu (xI pv) _ g (Z.div (a + Zpos y) 2) (Z.div (b - Zpos x) 2) c d
+        end
+      | xI pu, xH => fun Huv g a b c d => bgcd (Pos.sub u v) v _ g (Z.sub a c) (Z.sub b d) c d
+      | xI pu, xO pv => fun Huv g a b c d => match Z.even c, Z.even d with
+        | true, true => bgcd (xI pu) pv _ g a b (Z.div c 2) (Z.div d 2)
+        | _, _ => bgcd (xI pu) pv _ g a b (Z.div (c + Zpos y) 2) (Z.div (d - Zpos x) 2)
+        end
+      | xI pu, xI pv => fun Huv g a b c d => match (pu ?= pv)%positive with
+        | Lt => bgcd u (Pos.sub v u) _ g a b (Z.sub c a) (Z.sub d b)
+        | Eq => (a, b, Pos.mul g v)
+        | Gt => bgcd (Pos.sub u v) v _ g (Z.sub a c) (Z.sub b d) c d
+        end
+      end eq_refl) u v (poslt_wf _ )); inversion Huv; subst; clear Huv;
+      try (apply Acc_inv with (1 := H); nia).
+  Defined.
+
+End T.
+
+
+
+(* This one does not reduce  to any value *)
+Time Eval compute in binary_gcd 20000 3001 20000 3001 1 1 0 0 1.
+
+End Reducing.
+
 
