@@ -33,9 +33,10 @@ Section wf_proof.
   Lemma poslt_wf : well_founded Pos.lt.
   Proof.
     red; intros ?.
+    constructor; intros y Hy.
     eapply pos_acc.
     instantiate (1 := Z.pos a).
-    reflexivity.
+    nia.
   Defined. 
 
   About poslt_wf.
