@@ -17,17 +17,16 @@ Section wf_proof.
     exact (well_founded_ltof Z (f c)).
   Defined.
     
-  Lemma pos_acc : forall x a, Zpos a <= x -> Acc Pos.lt a.
+
+  Lemma pos_acc (x : Z) : forall a, Zpos a < x -> Acc Pos.lt a.
   Proof.
-    intro x.
     induction (zwf_well_founded 1 x) as [z Hz IHz].
     intros ? Hxa.
     constructor; intros y Hy.
+    constructor; intros v Hv.
     eapply IHz with (y := Z.pos y).
-    unfold zwf. clear Hz; clear IHz.
-    apply Zabs_nat_lt.
-    split; nia.
-    reflexivity.
+    unfold zwf. apply Zabs_nat_lt.
+    split; nia. nia.
   Defined.
 
 
@@ -87,7 +86,6 @@ Section Extgcd.
   Defined.
 End Extgcd.
 
-Time Eval vm_compute in binary_gcd 22345 485 22345 485 1 1 0 0 1.
 
 Section Extgcds. 
 
@@ -130,7 +128,8 @@ Section Extgcds.
 
 End Extgcds. 
 
-Time Eval vm_compute in bgcd 22345 485 22345 485 1 1 0 0 1.
+Time Eval vm_compute in binary_gcd 2234500 485700 2234500 485700 1 1 0 0 1.
+Time Eval vm_compute in bgcd 2234500 485700 2234500 485700 1 1 0 0 1.
 
 Section Extgcdfuel.
 
@@ -223,7 +222,7 @@ Definition bgcd (u v g : positive) (a b c d : Z) : Z * Z * positive.
         | Eq => (a, b, Pos.mul g v)
         | Gt => bgcd (Pos.sub u v) v _ g (Z.sub a c) (Z.sub b d) c d
         end
-      end eq_refl) u v (poslt_wf _ )); inversion Huv; subst; clear Huv;
+      end eq_refl) u v (Reducing.poslt_wf _ )); inversion Huv; subst; clear Huv;
       try (apply Acc_inv with (1 := H); nia).
   Defined.
 
