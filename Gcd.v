@@ -170,8 +170,6 @@ End Reducing.
 
 Module NotReducing.
 
-Require Import Coq.NArith.BinNat.
-Require Import Coq.Program.Wf.
 Require Import Coq.ZArith.Zwf.
 
 Lemma poslt_wf : well_founded Pos.lt.
@@ -239,3 +237,5 @@ End T.
 Time Eval compute in bgcd 2 3 2 3 1 1 0 0 1.
 
 End NotReducing.
+
+
