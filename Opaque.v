@@ -4,11 +4,10 @@
    https://sympa.inria.fr/sympa/arc/coq-club/2013-09/msg00034.html?ticket=ST-272822-JjlPeYflOHbYh07SIzDGXuXTxLk-cas.inria.fr
 *)
 
-  Fixpoint guard A (R : A -> A -> Prop) (n : nat) (wfR : well_founded R)
-    {struct n}: well_founded R :=
+  Fixpoint guard A (R : A -> A -> Prop) (n : nat) (wfR : well_founded R) : well_founded R :=
     match n with
     | 0%nat => wfR
-    | S n => fun x => Acc_intro x (fun y _ => guard A R n (guard A R n wfR) y)
+    | S n' => fun x => Acc_intro x (fun y _ => guard A R n' (guard A R n' wfR) y)
     end.
 
 
